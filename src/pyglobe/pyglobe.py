@@ -31,9 +31,12 @@ def getXYZfromUrl(url):
     return x, y, z
 
 def getTileUrl(x, y, z=10):
+    assert z < 20 and z >= 0, 'zoom levels need to be between 0 and 19'
+
     n = 2**z
     x = int(np.floor(x * n))
     y = int(np.floor(y * n))
+    z = int(z)
 
     return f'{OSM_BASE_URL}/{z}/{x}/{y}.png'
 

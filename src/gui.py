@@ -25,8 +25,9 @@ class ImageZoomApp:
 
     def getDefaultTile(self):
         # Get tile information
-        x, y = map.wgs2tile(51, 0)
-        tileUrl = map.getTileUrl(x=x, y=y, z=8)
+        self.x, self.y = map.wgs2tile(51, 0)
+        self.z = 8
+        tileUrl = map.getTileUrl(x=self.x, y=self.y, z=self.z)
         return map.getTileBytes(tileUrl)
 
     def updateMapTile(self, tile):
@@ -35,7 +36,12 @@ class ImageZoomApp:
         self.canvas.create_image(0, 0, anchor=NW, image=self.tk_image)
 
     def mapZoom(self, event=None):
-        print(event.delta)
+        self.z += event.delta / 120 # windows specific
+        self.z = min(self.z, 19)
+        self.z = max(self.z, 0)
+
+        tileUrl = map.getTileUrl(x=self.x, y=self.y, z=self.z)
+        self.updateMapTile(map.getTileBytes(tileUrl))
 
 if __name__ == "__main__":
     root = Tk()
