@@ -74,7 +74,7 @@ def getTileBytes(url, caching=True):
 
     headers = {
         'User-Agent': 'pyglobe 1.0',
-        'From': 'pyglobe@pyglobe.com'
+        'From': 'andi.arendt@icloud.com'
     }
 
     response = requests.get(url, headers=headers)
