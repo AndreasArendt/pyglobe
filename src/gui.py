@@ -9,8 +9,9 @@ class ImageZoomApp:
         self.root.title("pyglobe")
 
         # Create a Canvas widget
-        self.canvas = Canvas(self.root, bg="white")
+        self.canvas = Canvas(self.root, bg="black")
         self.canvas.pack(fill=BOTH, expand=True)
+        self.canvas.config(width=256*4, height=256*3)
 
         # Initialize image and image reference
         self.image = None
@@ -22,11 +23,12 @@ class ImageZoomApp:
         # binding mouse wheel for zooming
         # TODO: properly support MacOs and unix systems <Button-4> and <Button-5> https://github.com/AndreasArendt/pyglobe/issues/1
         self.canvas.bind("<MouseWheel>", self.mapZoom)
+        #self.canvas
 
     def getDefaultTile(self):
         # Get tile information
-        self.x, self.y = map.wgs2tile(51, 0)
-        self.z = 8
+        self.z = int(8)
+        self.x, self.y = map.wgs2tile(51, 0, self.z)
         tileUrl = map.getTileUrl(x=self.x, y=self.y, z=self.z)
         return map.getTileBytes(tileUrl)
 
@@ -36,7 +38,7 @@ class ImageZoomApp:
         self.canvas.create_image(0, 0, anchor=NW, image=self.tk_image)
 
     def mapZoom(self, event=None):
-        self.z += event.delta / 120 # windows specific
+        self.z += int(event.delta / 120) # windows specific
         self.z = min(self.z, 19)
         self.z = max(self.z, 0)
 

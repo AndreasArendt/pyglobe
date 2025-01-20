@@ -1,4 +1,4 @@
-import numpy as np
+import math
 import requests
 from ratelimit import limits, sleep_and_retry
 import io
@@ -15,33 +15,31 @@ def check_limit():
     ''' Empty function just to check for calls to API '''
     return
 
-def wgs2tile(lat__deg, lon__deg):
+def wgs2tile(lat__deg, lon__deg, zoom=10):
     '''Spherical to Mercator projection'''
+    assert zoom < 20 and zoom >= 0, 'zoom levels need to be between 0 and 19'
+
     x = (lon__deg + 180) / 360
-    y = 1 - (np.log(np.tan(np.pi / 4 + np.deg2rad(lat__deg) / 2)) / np.pi + 1) / 2
+    y = 1 - (math.log(math.tan(math.pi / 4 + math.radians(lat__deg) / 2)) / math.pi + 1) / 2
+
+    n = 2**zoom
+    x = int(math.floor(x * n))
+    y = int(math.floor(y * n))
 
     return x, y
 
 def getXYZfromUrl(url):
     regResult = re.findall(f'^{OSM_BASE_URL}/(\d+)/(\d+)/(\d+)\.png$', url)
-    x = regResult[0][0]
-    y = regResult[0][1]
-    z = regResult[0][2]
+    x = int(regResult[0][0])
+    y = int(regResult[0][1])
+    z = int(regResult[0][2])
 
     return x, y, z
 
 def getTileUrl(x, y, z=10):
-    assert z < 20 and z >= 0, 'zoom levels need to be between 0 and 19'
-
-    n = 2**z
-    x = int(np.floor(x * n))
-    y = int(np.floor(y * n))
-    z = int(z)
-
     return f'{OSM_BASE_URL}/{z}/{x}/{y}.png'
 
 def getChachePath(x, y, z):
-
     return f'{CACHE_PATH}/{x}_{y}_{z}.tile'
 
 def getCachedTile(url):
@@ -85,3 +83,12 @@ def getTileBytes(url, caching=True):
         cacheTile(tileData, url)
 
     return tileData
+
+def getTileLatLon(lat__deg, lon__deg, zoom=10):
+    x, y = map.wgs2tile(lat__deg, lon__deg)
+    tileUrl = map.getTileUrl(x=x, y=y, z=zoom)
+    return getTileBytes(tileUrl)
+
+def getTileXY(x, y, zoom=10):
+    tileUrl = map.getTileUrl(x=x, y=y, z=zoom)
+    return getTileBytes(tileUrl)
