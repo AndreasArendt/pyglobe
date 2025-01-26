@@ -79,6 +79,9 @@ class ImageZoomApp:
 
     def getVisibleMapTiles(self, x, y):
         canvas_width, canvas_height = self.getCanvasSize()  # Get current canvas size
+        width = canvas_width / 2**self.z
+        height = canvas_height / 2**self.z
+
         maxTiles = 2**self.z  # Number of tiles in the current zoom level
 
         # Get current xy Tile
@@ -90,8 +93,8 @@ class ImageZoomApp:
         # Calculate how many tiles are visible on each side
         nTiles_left = math.ceil((x - self.TILE_SIZE / 2) / self.TILE_SIZE)
         nTiles_top = math.ceil((y - self.TILE_SIZE / 2) / self.TILE_SIZE)
-        nTiles_right = math.ceil((canvas_width - x -self. TILE_SIZE / 2) / self.TILE_SIZE)
-        nTiles_bottom = math.ceil((canvas_height - y - self.TILE_SIZE / 2) / self.TILE_SIZE)
+        nTiles_right = math.ceil((width - x -self. TILE_SIZE / 2) / self.TILE_SIZE)
+        nTiles_bottom = math.ceil((height - y - self.TILE_SIZE / 2) / self.TILE_SIZE)
 
         # Compute the range of visible tiles, ensuring bounds are within [0, maxTiles-1]
         minTileX = max(0, xTile - nTiles_left)
@@ -115,8 +118,8 @@ class ImageZoomApp:
         self.z = min(self.z, 19)
         self.z = max(self.z, 0)
 
-        x = self.canvas.canvasx(event.x)
-        y = self.canvas.canvasy(event.y)
+        x = self.canvas.canvasx(event.x)-128
+        y = self.canvas.canvasy(event.y)-128
 
         # Calculate scale factor based on zoom direction
         if self.z == 0 and zoom_direction < 0:
@@ -127,6 +130,7 @@ class ImageZoomApp:
         self.zoomCanvas(x, y, factor)
         tiles, xTile, yTile = self.getVisibleMapTiles(x,y)
 
+        print("numberTiles ", str(len(tiles)))
         self.current_images = []
 
         # redraw tiles
