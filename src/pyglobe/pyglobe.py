@@ -15,6 +15,13 @@ def check_limit():
     ''' Empty function just to check for calls to API '''
     return
 
+def XYZ2Wgs(x,y,z):
+    R =  6378137.0
+    lat__deg = math.degrees(2 * math.atan(math.exp (y / R)) - math.pi / 2.0)
+    lon__deg = math.degrees(x / R)
+
+    return lat__deg, lon__deg
+
 def wgs2tile(lat__deg, lon__deg, zoom=10):
     '''Spherical to Mercator projection'''
     assert zoom < 20 and zoom >= 0, 'zoom levels need to be between 0 and 19'
@@ -27,6 +34,11 @@ def wgs2tile(lat__deg, lon__deg, zoom=10):
     y = int(math.floor(y * n))
 
     return x, y
+
+def getNextTiles(x,y):
+    #(2x  , 2y)   (2x  , 2y+1)
+    #(2x+1, 2y)   (2x+1, 2y+1)
+    a = 1
 
 def getXYZfromUrl(url):
     regResult = re.findall(f'^{OSM_BASE_URL}/(\d+)/(\d+)/(\d+)\.png$', url)
