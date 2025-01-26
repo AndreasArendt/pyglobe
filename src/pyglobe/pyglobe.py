@@ -10,7 +10,7 @@ OSM_BASE_URL = 'https://tile.openstreetmap.org'
 CACHE_PATH = os.path.abspath(os.curdir +  '/data')
 
 @sleep_and_retry
-@limits(calls=1, period=5)
+@limits(calls=1, period=1)
 def check_limit():
     ''' Empty function just to check for calls to API '''
     return
@@ -34,11 +34,6 @@ def wgs2tile(lat__deg, lon__deg, zoom=10):
     y = int(math.floor(y * n))
 
     return x, y
-
-def getNextTiles(x,y):
-    #(2x  , 2y)   (2x  , 2y+1)
-    #(2x+1, 2y)   (2x+1, 2y+1)
-    a = 1
 
 def getXYZfromUrl(url):
     regResult = re.findall(f'^{OSM_BASE_URL}/(\d+)/(\d+)/(\d+)\.png$', url)

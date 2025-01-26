@@ -2,6 +2,8 @@ import pyglobe.pyglobe as map
 from tkinter import *
 from PIL import ImageTk, Image
 import pyglobe.pyglobe as map
+import math
+import itertools
 
 class ImageZoomApp:
     def __init__(self, root):
@@ -12,12 +14,13 @@ class ImageZoomApp:
         self.mapWidth = 800
         self.mapHeight = 600
 
-        self.logical_width = 256
-        self.logical_height = 256
+        self.TILE_SIZE = 256  # Define the size of each tile
 
         self.x = 0
         self.y = 0
         self.z = 0
+
+        self.current_images = []
 
         # Create a Canvas widget
         self.canvas = Canvas(root, bg="gray75", height=self.mapHeight, width=self.mapWidth)
@@ -34,8 +37,6 @@ class ImageZoomApp:
         self.canvas.bind("<Button-1>", self.mapClick)
         self.setDefaultTile()
 
-
-
     def setDefaultTile(self):
         tile = map.getTileBytes(map.getTileUrl(x=0, y=0, z=0))
         self.updateMapTile(tile)
@@ -50,21 +51,17 @@ class ImageZoomApp:
 
         # If x or y is not provided, calculate center
         if x is None or y is None:
-            #w, h = self.getCanvasSize()
-            #x, y = w / 2, h / 2
             x, y = self.mapWidth/2, self.mapHeight/2
 
         # Draw the image on the canvas, centered at (x, y)
         self.canvas.image = self.tk_image
         self.canvas.create_image(x, y, anchor=CENTER, image=self.tk_image)
 
-        # Pack or ensure canvas is displayed after drawing
-        self.canvas.pack(fill=BOTH, expand=True)
-
         # Store the current image to avoid garbage collection
-        self.current_image = self.tk_image
+        self.current_images.append(self.tk_image)
 
     def getCanvasSize(self):
+        self.canvas.update_idletasks()
         canvas_width = self.canvas.winfo_width() * 2**self.z
         canvas_height = self.canvas.winfo_height() * 2**self.z
 
@@ -80,6 +77,37 @@ class ImageZoomApp:
         y = self.canvas.canvasy(event.y)
         print(f"Click coords: {x}, {y}")
 
+    def getVisibleMapTiles(self, x, y):
+        canvas_width, canvas_height = self.getCanvasSize()  # Get current canvas size
+        maxTiles = 2**self.z  # Number of tiles in the current zoom level
+
+        # Get current xy Tile
+        xcoord = (maxTiles-1) * (x / (self.TILE_SIZE * maxTiles))
+        ycoord = (maxTiles-1) * (y / (self.TILE_SIZE * maxTiles))
+        xTile = int(xcoord)
+        yTile = int(ycoord)
+
+        # Calculate how many tiles are visible on each side
+        nTiles_left = math.ceil((x - self.TILE_SIZE / 2) / self.TILE_SIZE)
+        nTiles_top = math.ceil((y - self.TILE_SIZE / 2) / self.TILE_SIZE)
+        nTiles_right = math.ceil((canvas_width - x -self. TILE_SIZE / 2) / self.TILE_SIZE)
+        nTiles_bottom = math.ceil((canvas_height - y - self.TILE_SIZE / 2) / self.TILE_SIZE)
+
+        # Compute the range of visible tiles, ensuring bounds are within [0, maxTiles-1]
+        minTileX = max(0, xTile - nTiles_left)
+        maxTileX = min(maxTiles - 1, xTile + nTiles_right)
+        minTileY = max(0, yTile - nTiles_top)
+        maxTileY = min(maxTiles - 1, yTile + nTiles_bottom)
+
+        # Generate visible tile indices
+        xTiles = list(range(minTileX, maxTileX + 1))
+        yTiles = list(range(minTileY, maxTileY + 1))
+
+        # get permutation of all needed tiles and sort them by distance to current tile
+        tilePermut = list(itertools.product(xTiles, yTiles))
+        tiles_sorted = sorted(tilePermut, key=lambda tile: math.sqrt((tile[0] - xTile)**2 + (tile[1] - yTile)**2))
+
+        return tiles_sorted, xTile, yTile
 
     def mapZoom(self, event=None):
         zoom_direction = int(event.delta / 120)  # Windows-specific behavior
@@ -89,7 +117,6 @@ class ImageZoomApp:
 
         x = self.canvas.canvasx(event.x)
         y = self.canvas.canvasy(event.y)
-        canvas_width, canvas_height = self.getCanvasSize()
 
         # Calculate scale factor based on zoom direction
         if self.z == 0 and zoom_direction < 0:
@@ -98,25 +125,26 @@ class ImageZoomApp:
             factor = 2 if zoom_direction > 0 else 0.5
 
         self.zoomCanvas(x, y, factor)
+        tiles, xTile, yTile = self.getVisibleMapTiles(x,y)
 
-        maxTiles = 2**self.z
-        xcoord = maxTiles * (x / canvas_width)
-        ycoord = maxTiles * (y / canvas_height)
+        self.current_images = []
 
-        xTile = int(xcoord)
-        yTile = int(ycoord)
+        # redraw tiles
+        for xyTile in tiles:
+            url =  map.getTileUrl(x=xyTile[0], y=xyTile[1], z=self.z)
+            tile = map.getTileBytes(url)
 
-        x = self.canvas.canvasx(event.x)
-        y = self.canvas.canvasy(event.y)
-        tileUrl = map.getTileUrl(x=xTile, y=yTile, z=self.z)
-        self.updateMapTile(map.getTileBytes(tileUrl), x, y)
+            offset_x = (xyTile[0] - xTile) * self.TILE_SIZE
+            offset_y = (xyTile[1] - yTile) * self.TILE_SIZE
+
+            self.updateMapTile(tile, x+offset_x, y+offset_y)
+
+        # Pack or ensure canvas is displayed after drawing
+        self.canvas.pack(fill=BOTH, expand=True)
 
         # Debugging output
-        print(tileUrl)
         print(f"Click coords: {x}, {y}")
         print(f"Zoom level: {self.z}")
-        print(f"Canvas size pre-zoom: {canvas_width}, {canvas_height}")
-        print(f"Normalized coords: {xcoord}, {ycoord}")
         print(f"Tile indices: {xTile}, {yTile}")
         print("")
 
